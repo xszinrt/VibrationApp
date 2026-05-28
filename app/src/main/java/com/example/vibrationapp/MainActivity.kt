@@ -39,17 +39,17 @@ class MainActivity : AppCompatActivity() {
         binding.btnVibrate.setBackgroundColor(0xFFE53935.toInt())
 
         try {
+            // تشغيل أمر النظام مباشرة مثل Termux
+            Runtime.getRuntime().exec(arrayOf("cmd", "vibrator_manager", "vibrate", "-f", "2000", "test"))
+        } catch (e: Exception) {
+            // fallback للـ API العادي
             val vibrator = getVibrator()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator.vibrate(
-                    VibrationEffect.createWaveform(longArrayOf(0, 1000, 200), 0)
-                )
+                vibrator.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 1000, 200), 0))
             } else {
                 @Suppress("DEPRECATION")
                 vibrator.vibrate(longArrayOf(0, 1000, 200), 0)
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
     }
 
@@ -58,10 +58,9 @@ class MainActivity : AppCompatActivity() {
         binding.btnVibrate.text = "تشغيل الهزاز"
         binding.btnVibrate.setBackgroundColor(0xFF43A047.toInt())
         try {
+            Runtime.getRuntime().exec(arrayOf("cmd", "vibrator_manager", "cancel"))
             getVibrator().cancel()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
+        } catch (e: Exception) {}
     }
 
     override fun onDestroy() {
