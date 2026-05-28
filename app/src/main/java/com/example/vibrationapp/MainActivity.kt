@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import android.os.VibrationEffect
+import android.os.VibrationAttributes
 import android.os.Vibrator
 import android.os.VibratorManager
 import androidx.appcompat.app.AppCompatActivity
@@ -15,8 +16,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun getVibrator(): Vibrator {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vm = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            vm.defaultVibrator
+            (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager).defaultVibrator
         } else {
             @Suppress("DEPRECATION")
             getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
@@ -38,18 +38,20 @@ class MainActivity : AppCompatActivity() {
         binding.btnVibrate.text = "إيقاف الهزاز"
         binding.btnVibrate.setBackgroundColor(0xFFE53935.toInt())
 
-        try {
-            // تشغيل أمر النظام مباشرة مثل Termux
-            Runtime.getRuntime().exec(arrayOf("cmd", "vibrator_manager", "vibrate", "-f", "2000", "test"))
-        } catch (e: Exception) {
-            // fallback للـ API العادي
-            val vibrator = getVibrator()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibrator.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 1000, 200), 0))
-            } else {
-                @Suppress("DEPRECATION")
-                vibrator.vibrate(longArrayOf(0, 1000, 200), 0)
-            }
+        val vibrator = getVibrator()
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Android 13+ - نستخدم RINGTONE لأنه نفس ما تستخدمه المكالمات
+            val effect = VibrationEffect.createWaveform(longArrayOf(0, 1000, 200), 0)
+            val attrs = VibrationAttributes.Builder()
+                .setUsage(VibrationAttributes.USAGE_RINGTONE)
+                .build()
+            vibrator.vibrate(effect, attrs)
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 1000, 200), 0))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(longArrayOf(0, 1000, 200), 0)
         }
     }
 
@@ -57,10 +59,7 @@ class MainActivity : AppCompatActivity() {
         isVibrating = false
         binding.btnVibrate.text = "تشغيل الهزاز"
         binding.btnVibrate.setBackgroundColor(0xFF43A047.toInt())
-        try {
-            Runtime.getRuntime().exec(arrayOf("cmd", "vibrator_manager", "cancel"))
-            getVibrator().cancel()
-        } catch (e: Exception) {}
+        getVibrator().cancel()
     }
 
     override fun onDestroy() {
